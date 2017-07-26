@@ -4,7 +4,7 @@ import org.joda.time.format.DateTimeFormat
 /**
   * Created by neocloudeh on 13/05/2017.
   */
-object Excercise2 extends App {
+object Taxcercise extends App {
   val contractDayRateL = Seq(450)
   val timeUnemployedL = Seq(90)
   val professionalIndemnityInsurance = BigDecimal(1000)
@@ -65,6 +65,12 @@ object Excercise2 extends App {
     def min(y: LocalDate): LocalDate = if(x.isBefore(y)) x else y
   }
 
+  def calculateNetIncome(profits: BigDecimal):BigDecimal = {
+    //See http://www.contractorcalculator.co.uk/salary_versus_dividends_limited_companies_advice.aspx and fix
+    val heuristic = BigDecimal(0.8073)
+    profits * heuristic
+  }
+
   val totals = for {
     handInNotice <- handInNoticeL
     timeUnemployed <- timeUnemployedL
@@ -81,7 +87,7 @@ object Excercise2 extends App {
     incorporationCost = 90 * VAT_COEF
     insurance = PII_PER_DAY * contractingDays
     costs = accountantCost + incorporationCost + insurance
-    contractTotal = (contractIncome * TAX_COEF) - costs
+    contractTotal = calculateNetIncome((contractIncome * TAX_COEF) - costs)
     total = totalWorkIncome + contractTotal
   } yield handInNotice -> total.setScale(0, BigDecimal.RoundingMode.DOWN)
 
