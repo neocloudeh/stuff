@@ -5,7 +5,7 @@ import org.joda.time.format.DateTimeFormat
   * Created by neocloudeh on 13/05/2017.
   */
 object Taxcercise extends App {
-  val contractDayRateL = Seq(450)
+  val contractDayRateL = Seq(500)
   val timeUnemployedL = Seq(90)
   val professionalIndemnityInsurance = BigDecimal(1000)
 
@@ -67,29 +67,32 @@ object Taxcercise extends App {
 
   def calculateNetIncome(rawProfits: BigDecimal):BigDecimal = {
     //See http://www.contractorcalculator.co.uk/salary_versus_dividends_limited_companies_advice.aspx and fix
-    val heuristic = BigDecimal(0.8073)
 
     val niThreshold = BigDecimal(8060)
+
     val profits = rawProfits - niThreshold
 
     val corpTaxCoef = BigDecimal(0.81)
+
     val totalAvailableForDividends = profits * corpTaxCoef
+
+    val lowerTaxBand = 5000 + (11000 - niThreshold).max(0)
 
     //todo: Do this as a fold with the highest brackets first in the list
     val bracketsAndRates =
       List(
-        150000 -> 0.381,
-        32000 -> 0.325,
-        5000 -> 0.075
+        BigDecimal(150000) -> 0.381,
+        BigDecimal(32000) -> 0.325,
+        lowerTaxBand -> 0.075
       )
 
-    val start = (profits, BigDecimal(0))
+    val start = (totalAvailableForDividends, BigDecimal(0))
 
     val (untaxed, taxed) = bracketsAndRates.foldLeft(start){
-      case ((profits, paidOut), (bracket, taxRate)) =>
-        val toTax = (profits - bracket).max(0)
-        val remaining = profits - toTax
-        (remaining, paidOut + (toTax * (BigDecimal(1) - taxRate)))
+      case ((remainingProfits, paidOut), (divBracket, divRate)) =>
+        val toTax = (remainingProfits - divBracket).max(0)
+        val remaining = remainingProfits - toTax
+        (remaining, paidOut + (toTax * (BigDecimal(1) - divRate)))
     }
 
     val total = untaxed + taxed
