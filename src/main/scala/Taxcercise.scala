@@ -13,7 +13,7 @@ object Taxcercise extends App {
   val VAT = 0.2
   val VAT_COEF = BigDecimal(1) + VAT
   val VAT_PAY_BACK = 0.145
-  val TAX_COEF = BigDecimal(1) + (VAT - VAT_PAY_BACK)
+  val FINAL_VAT_COEF = BigDecimal(1) + (VAT - VAT_PAY_BACK)
 
   val PII_PER_DAY = professionalIndemnityInsurance / 365.5
 
@@ -65,10 +65,36 @@ object Taxcercise extends App {
     def min(y: LocalDate): LocalDate = if(x.isBefore(y)) x else y
   }
 
-  def calculateNetIncome(profits: BigDecimal):BigDecimal = {
+  def calculateNetIncome(rawProfits: BigDecimal):BigDecimal = {
     //See http://www.contractorcalculator.co.uk/salary_versus_dividends_limited_companies_advice.aspx and fix
     val heuristic = BigDecimal(0.8073)
-    profits * heuristic
+
+    val niThreshold = BigDecimal(8060)
+    val profits = rawProfits - niThreshold
+
+    val corpTaxCoef = BigDecimal(0.81)
+    val totalAvailableForDividends = profits * corpTaxCoef
+
+    //todo: Do this as a fold with the highest brackets first in the list
+    val bracketsAndRates =
+      List(
+        150000 -> 0.381,
+        32000 -> 0.325,
+        5000 -> 0.075
+      )
+
+    val start = (profits, BigDecimal(0))
+
+    val (untaxed, taxed) = bracketsAndRates.foldLeft(start){
+      case ((profits, paidOut), (bracket, taxRate)) =>
+        val toTax = (profits - bracket).max(0)
+        val remaining = profits - toTax
+        (remaining, paidOut + (toTax * (BigDecimal(1) - taxRate)))
+    }
+
+    val total = untaxed + taxed
+
+    total + niThreshold
   }
 
   val totals = for {
@@ -87,7 +113,7 @@ object Taxcercise extends App {
     incorporationCost = 90 * VAT_COEF
     insurance = PII_PER_DAY * contractingDays
     costs = accountantCost + incorporationCost + insurance
-    contractTotal = calculateNetIncome((contractIncome * TAX_COEF) - costs)
+    contractTotal = calculateNetIncome((contractIncome * FINAL_VAT_COEF) - costs)
     total = totalWorkIncome + contractTotal
   } yield handInNotice -> total.setScale(0, BigDecimal.RoundingMode.DOWN)
 
