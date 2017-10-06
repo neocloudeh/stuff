@@ -5,8 +5,8 @@ import org.joda.time.format.DateTimeFormat
   * Created by neocloudeh on 13/05/2017.
   */
 object Taxcercise extends App {
-  val contractDayRateL = Seq(500)
-  val timeUnemployedL = Seq(90)
+  val contractDayRateL = Seq(550)
+  val timeUnemployedL = Seq(30)
   val professionalIndemnityInsurance = BigDecimal(1000)
 
 
